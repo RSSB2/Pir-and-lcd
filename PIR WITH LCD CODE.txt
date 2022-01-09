@@ -1,0 +1,209 @@
+//@ON1*
+//@ON2*
+//@OFF1*
+//@OFF2*
+
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2); //(RS, EN, D4, D5, D6, D7)
+
+int a;
+float b;
+int temp=0,i=0;
+
+char str[15];
+
+const int PIRsensor = 8; // PIR sensor pin
+const int Relay1  = 9; // Relay1 pin
+const int Relay2  = 10; // Relay2 pin
+
+int PIRSensorState; 
+
+void setup() 
+{
+  pinMode(PIRsensor, INPUT);
+  pinMode(Relay1, OUTPUT);
+  pinMode(Relay2, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+
+   lcd.begin(16, 2); 
+  Serial.begin(9600);
+   lcd.setCursor(0,0); 
+   lcd.print(" PIR Security");
+   lcd.setCursor(0, 1); 
+   lcd.print("    System ");
+   delay(2000);
+  Serial.println("ATE0");
+  delay(500);
+  Serial.println("AT+CNMI=2,2,0,0,0");
+  delay(500);
+  Serial.println("AT+CMGF=1"); 
+  delay(2000);
+   lcd.clear();
+   lcd.setCursor(0,0);
+   lcd.print("Monitoring Ready"); 
+}
+
+void loop()
+{
+    PIRSensorState = digitalRead(PIRsensor); 
+    if(PIRSensorState == HIGH)
+    {
+     digitalWrite(LED_BUILTIN, HIGH);
+       lcd.setCursor(0,0);
+       lcd.print("INTRUDER ALERT  "); 
+       delay(3000);
+       lcd.setCursor(0,0);
+       lcd.print("Sending SMS...  "); 
+     Serial.println("AT+CMGF=1"); 
+     delay(200);
+     Serial.println("AT+CMGS=\"123456789\"\r"); //phone number
+     delay(200);
+     Serial.println("Intruder Person Detected"); //type message
+     delay(200);
+     Serial.write(26);
+     delay(3000);
+       lcd.setCursor(0,0);
+       lcd.print("SMS Sent Success");
+       delay(4000);
+
+      lcd.setCursor(0,0);
+      lcd.print("Dialing Number.."); 
+    //Calling through GSM
+    Serial.println("ATE0");
+    delay(1000); 
+    Serial.println("ATD123456789;"); //phone number
+    delay(7000);  
+
+      lcd.setCursor(0,0);
+      lcd.print("Please Wait..   "); 
+      Serial.println("ATE0");
+      delay(500);
+      Serial.println("AT+CNMI=2,2,0,0,0");
+      delay(500);
+      Serial.println("AT+CMGF=1"); 
+      delay(2000);
+  
+     lcd.setCursor(0,0);
+     lcd.print("Monitoring Ready"); 
+    digitalWrite(LED_BUILTIN, LOW);
+    }    
+    
+     //check for serial data
+    while(Serial.available()) 
+    {
+    if(Serial.find("@"))
+    {
+    delay(1000);
+    while (Serial.available()) 
+    {
+    char inChar=Serial.read();
+    str[i++]=inChar; 
+    if(inChar=='*')
+    {
+    temp=1; 
+    return;
+    } 
+    } 
+    }
+    }
+
+    if(temp==1)
+    {
+    check();
+    temp=0;
+    i=0;
+    }
+}
+
+void check()
+{
+  if(!(strncmp(str,"ON1",3))) //Relay1 ON
+  {
+  digitalWrite(Relay1, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
+   lcd.setCursor(0,0);
+   lcd.print("Sending SMS...  ");  
+   lcd.setCursor(0,1);
+   lcd.print("L1:ON  ");     
+  Serial.println("AT+CMGF=1"); 
+  delay(200);
+  Serial.println("AT+CMGS=\"123456789\"\r"); //phone number
+  delay(200);
+  Serial.println("Load-1 'ON'"); //type message
+  delay(200);
+  Serial.write(26);
+  delay(3000);
+  lcd.setCursor(0,0);
+  lcd.print("Monitoring Ready"); 
+  digitalWrite(LED_BUILTIN, LOW);
+  } 
+
+  if(!(strncmp(str,"ON2",3))) //Relay2 ON
+  {
+  digitalWrite(Relay2, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
+   lcd.setCursor(0,0);
+   lcd.print("Sending SMS...  "); 
+   lcd.setCursor(8,1);
+   lcd.print("L2: ON  "); 
+  Serial.println("AT+CMGF=1");
+  delay(200);
+  Serial.println("AT+CMGS=\"123456789\"\r"); //phone number
+  delay(200);
+  Serial.println("Load-2 'ON'"); //type message
+  delay(200);
+  Serial.write(26); 
+  delay(3000);
+  lcd.setCursor(0,0);
+  lcd.print("Monitoring Ready"); 
+  digitalWrite(LED_BUILTIN, LOW);
+  }
+
+  if(!(strncmp(str,"OFF1",4))) //Relay1 OFF
+  {
+  digitalWrite(Relay1, LOW);
+  digitalWrite(LED_BUILTIN, HIGH);
+   lcd.setCursor(0,0);
+   lcd.print("Sending SMS...  ");
+   lcd.setCursor(0,1);
+   lcd.print("L1:OFF "); 
+  Serial.println("AT+CMGF=1"); 
+  delay(200);
+  Serial.println("AT+CMGS=\"123456789\"\r"); //phone number
+  delay(200);
+  Serial.println("Load-1 'OFF'"); //type message
+  delay(200);
+  Serial.write(26); 
+  delay(3000);
+  lcd.setCursor(0,0);
+  lcd.print("Monitoring Ready"); 
+  digitalWrite(LED_BUILTIN, LOW);
+  }
+
+  if(!(strncmp(str,"OFF2",4))) //Relay2 OFF
+  {
+  digitalWrite(Relay2, LOW);
+   lcd.setCursor(0,0);
+   lcd.print("Sending SMS...  ");
+   lcd.setCursor(8,1);
+   lcd.print("L2:OFF "); 
+  digitalWrite(LED_BUILTIN, HIGH);
+  Serial.println("AT+CMGF=1"); 
+  delay(200);
+  Serial.println("AT+CMGS=\"123456789\"\r"); //phone number
+  delay(200);
+  Serial.println("Load-2 'OFF'"); //type message
+  delay(200);
+  Serial.write(26); 
+  delay(3000);
+  lcd.setCursor(0,0);
+  lcd.print("Monitoring Ready"); 
+  digitalWrite(LED_BUILTIN, LOW);
+  }
+   
+} 
+ 
+   
+
+  
